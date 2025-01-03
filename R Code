@@ -1,0 +1,51 @@
+library(readxl)
+hd_data <-read_excel(file.choose("heart.xlsx")) 
+library(ggplot2)
+library(caret)
+heart_disease <- hd_data$target
+fasting_blood_sugar <- hd_data$fbs
+contingency_table <- table(heart_disease, fasting_blood_sugar)
+print(contingency_table)
+data <- data.frame(heart_disease = factor(heart_disease, levels = c(0, 1), labels = c("No", "Yes")),
+                   fasting_blood_sugar = factor(fasting_blood_sugar, levels = c(0, 1), labels = c("No", "Yes")))
+Scattered_box_plot <- ggplot(data, aes(x = heart_disease, fill = fasting_blood_sugar)) +
+  geom_bar(position = "fill") +
+  labs(x = "Heart Disease", y = "Proportion", fill = "Fasting Blood Sugar") +
+  scale_fill_manual(values = c("No" = "lightblue", "Yes" = "lightpink")) +
+  theme_minimal()
+  print(Scattered_box_plot)
+  
+result <- chisq.test(table(heart_disease, fasting_blood_sugar))
+print(result)   
+ 
+set.seed(123) 
+ 
+target_column <- 1
+target <- data[, target_column]
+ 
+predictor_columns <- 2:ncol(data)
+predictors <- data[, predictor_columns]
+ 
+train_indices <- createDataPartition(y = target, p = 0.8, list = FALSE)
+train_data <- data[train_indices, ]
+test_data <- data[-train_indices, ]
+print(train_data)
+print(test_data)
+ 
+fitControl <- trainControl(method = "cv", number = 10, savePredictions = TRUE) 
+ 
+lgr_model <- train(heart_disease ~ fasting_blood_sugar, data = train_data, method = "regLogistic", family = "binomial", trControl= fitControl, verbose= FALSE)
+print(lgr_model)
+ 
+lgr_predictions <- predict(lgr_model, newdata = test_data)
+print(lgr_predictions)
+ 
+confusionMatrix(data= lgr_predictions, reference= test_data$heart_disease)
+ 
+rf_model<- train(heart_disease ~ fasting_blood_sugar, data = train_data, method = "rf", family = "binomial", trControl= fitControl, verbose= FALSE)
+print(rf_model)
+ 
+rf_predictions <- predict(rf_model, newdata = test_data)
+print(rf_predictions)
+ 
+confusionMatrix(data= rf_predictions, reference= test_data$heart_disease)
